@@ -14,11 +14,11 @@ Project {
             name: "cpp"
         }
 
-        cpp.defines: ["STM32F10X_LD_VL"]
+        cpp.defines: ["STM32L476xx"]
         cpp.positionIndependentCode: false
         cpp.enableExceptions: false
         cpp.executableSuffix: ".elf"
-        cpp.cxxFlags: ["-std=c++11"]
+        cpp.cxxFlags: ["-std=c++14"]
         cpp.cFlags: ["-std=gnu99"]
 
         Properties
@@ -38,52 +38,53 @@ Project {
 
         files:
         [
-                 "src/system/cmsis/*.h",
-                 "src/system/cmsis/*.h",
-                 "src/system/cmsis_boot/*.h",
-                 "src/system/cmsis_boot/*.c",
-                 "src/system/cmsis_boot/startup/*.c",
-                 "src/main.cpp"
+            "src/rtc.cpp",
+            "src/rtc.h",
+            "system/cmsis/device/include/*.h",
+            "system/cmsis/device/source/*.c",
+            "system/cmsis/include/*.h",
+            "system/startup/*.s",
+            "src/main.cpp",
         ]
 
         cpp.driverFlags:
         [
-                  "-mthumb",
-                  "-mcpu=cortex-m3",
-                  "-mfloat-abi=soft",
-                  "-fno-strict-aliasing",
-                  "-g3",
-                  "-Wall",
-                  "-mfpu=vfp",
-                  "-flto"
+            "-mcpu=cortex-m4",
+            "-mthumb",
+            "-mfloat-abi=hard",
+            "-mfpu=fpv4-sp-d16",
+            "-g3",
+            "-Wall",
+            "-fmessage-length=0",
+            "-ffunction-sections"
         ]
 
         cpp.commonCompilerFlags:
         [
-                  "-fdata-sections",
-                  "-ffunction-sections",
-                  "-fno-inline",
-                  "-flto"
+            "-mcpu=cortex-m4",
+            "-mthumb",
+            "-mfloat-abi=hard",
+            "-mfpu=fpv4-sp-d16",
+            "-g3",
+            "-Wall",
+            "-fmessage-length=0",
+            "-ffunction-sections"
         ]
 
         cpp.linkerFlags:
         [
-                  //"--specs=nano.specs",
-                  "--start-group",
-                  "--gc-sections",
-                  "-T" + path + "/src/system/linker/stm32f10x_flash.ld",
-                  "-lnosys",
-                  "-lgcc",
-                  "-lc",
-                  "-lstdc++",
-                  "-lm"
+            "-T" + path + "/system/linker/stm32l4xx_flash.ld",
+            "-Map=output.map",
+            "--gc-sections",
+            "-lm"
         ]
 
         cpp.includePaths:
         [
-                  "src/system/cmsis",
-                  "src/system/cmsis_boot",
-                  "src/system/cmsis_boot/statup"
+                  "system/cmsis/include",
+                  "system/cmsis/device/include",
+                  "system/cmsis/device/source",
+                  "system/startup"
         ]
 
         Rule
@@ -98,10 +99,10 @@ Project {
 
             prepare:
             {
-                var GCCPath = "c:/development/gcc-arm/bin"
-                var OpenOCDPath = "c:/development/openocd_0_10_0"
-                var OpenOCDInterface = "stlink-v2.cfg"
-                var OpenOCDTarget = "stm32f1x.cfg"
+                var GCCPath = "/opt/ARM/gcc-arm-none-eabi/bin"
+                var OpenOCDPath = "/opt/ARM/openocd-0.10.0"
+                var OpenOCDInterface = "stlink.cfg"
+                var OpenOCDTarget = "stm32l4x.cfg"
 //                var OpenOCDTarget = "stm32f0x.cfg"
 
                 var argsSize = [input.filePath]
@@ -118,9 +119,9 @@ Project {
                             "-c", "shutdown"
                 ]
 
-                var cmdSize = new Command(GCCPath + "/arm-none-eabi-size.exe", argsSize)
-                var cmdObjcopy = new Command(GCCPath + "/arm-none-eabi-objcopy.exe", argsObjcopy)
-                var cmdFlash = new Command(OpenOCDPath + "/bin/openocd.exe", argsFlashing);
+                var cmdSize = new Command(GCCPath + "/arm-none-eabi-size", argsSize)
+                var cmdObjcopy = new Command(GCCPath + "/arm-none-eabi-objcopy", argsObjcopy)
+                var cmdFlash = new Command(OpenOCDPath + "/bin/openocd", argsFlashing);
 
                 cmdSize.description = "Size of sections:"
                 cmdSize.highlight = "linker"
@@ -136,3 +137,86 @@ Project {
         }
     }
 }
+//    --------------------------------------------------------------------
+//    | ARM Core | Command Line Options                       | multilib |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-M0+| -mthumb -mcpu=cortex-m0plus                | armv6-m  |
+//    |Cortex-M0 | -mthumb -mcpu=cortex-m0                    |          |
+//    |Cortex-M1 | -mthumb -mcpu=cortex-m1                    |          |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -march=armv6-m                     |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-M3 | -mthumb -mcpu=cortex-m3                    | armv7-m  |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7-m                     |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-M4 | -mthumb -mcpu=cortex-m4                    | armv7e-m |
+//    |(No FP)   |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7e-m                    |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-M4 | -mthumb -mcpu=cortex-m4 -mfloat-abi=softfp | armv7e-m |
+//    |(Soft FP) | -mfpu=fpv4-sp-d16                          | /softfp  |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7e-m -mfloat-abi=softfp |          |
+//    |          | -mfpu=fpv4-sp-d16                          |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-M4 | -mthumb -mcpu=cortex-m4 -mfloat-abi=hard   | armv7e-m |
+//    |(Hard FP) | -mfpu=fpv4-sp-d16                          | /fpu     |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7e-m -mfloat-abi=hard   |          |
+//    |          | -mfpu=fpv4-sp-d16                          |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-M7 | -mthumb -mcpu=cortex-m7                    | armv7e-m |
+//    |(No FP)   |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7e-m                    |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-M7 | -mthumb -mcpu=cortex-m7 -mfloat-abi=softfp | armv7e-m |
+//    |(Soft FP) | -mfpu=fpv5-sp-d16                          | /softfp  |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7e-m -mfloat-abi=softfp |          |
+//    |          | -mfpu=fpv5-sp-d16                          |          |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -mcpu=cortex-m7 -mfloat-abi=softfp |          |
+//    |          | -mfpu=fpv5-d16                             |          |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7e-m -mfloat-abi=softfp |          |
+//    |          | -mfpu=fpv5-d16                             |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-M7 | -mthumb -mcpu=cortex-m7 -mfloat-abi=hard   | armv7e-m |
+//    |(Hard FP) | -mfpu=fpv5-sp-d16                          | /fpu     |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7e-m -mfloat-abi=hard   |          |
+//    |          | -mfpu=fpv5-sp-d16                          |          |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -mcpu=cortex-m7 -mfloat-abi=hard   |          |
+//    |          | -mfpu=fpv5-d16                             |          |
+//    |          |--------------------------------------------|          |
+//    |          | -mthumb -march=armv7e-m -mfloat-abi=hard   |          |
+//    |          | -mfpu=fpv5-d16                             |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-R4 | [-mthumb] -march=armv7-r                   | armv7-ar |
+//    |Cortex-R5 |                                            | /thumb   |
+//    |Cortex-R7 |                                            |          |
+//    |(No FP)   |                                            |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-R4 | [-mthumb] -march=armv7-r -mfloat-abi=softfp| armv7-ar |
+//    |Cortex-R5 | -mfpu=vfpv3-d16                            | /thumb   |
+//    |Cortex-R7 |                                            | /softfp  |
+//    |(Soft FP) |                                            |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-R4 | [-mthumb] -march=armv7-r -mfloat-abi=hard  | armv7-ar |
+//    |Cortex-R5 | -mfpu=vfpv3-d16                            | /thumb   |
+//    |Cortex-R7 |                                            | /fpu     |
+//    |(Hard FP) |                                            |          |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-A* | [-mthumb] -march=armv7-a                   | armv7-ar |
+//    |(No FP)   |                                            | /thumb   |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-A* | [-mthumb] -march=armv7-a -mfloat-abi=softfp| armv7-ar |
+//    |(Soft FP) | -mfpu=vfpv3-d16                            | /thumb   |
+//    |          |                                            | /softfp  |
+//    |----------|--------------------------------------------|----------|
+//    |Cortex-A* | [-mthumb] -march=armv7-a -mfloat-abi=hard  | armv7-ar |
+//    |(Hard FP) | -mfpu=vfpv3-d16                            | /thumb   |
+//    |          |                                            | /fpu     |
+//    --------------------------------------------------------------------
