@@ -5,7 +5,7 @@
     //-----------
     namespace rtc
     {
-        enum AlarmType
+        enum
         {
             SECOND = RTC_ALRMAR_MSK1,
             MINUTE = RTC_ALRMAR_MSK2,
@@ -38,8 +38,10 @@
         void RTC_Init(void);
         void RTC_Time(time_t& time);
         void RTC_Date(date_t& date);
+        void RTC_DateTime(datetime_t& datetime);
         void RTC_SetTime(const time_t& time);
         void RTC_SetDate(const date_t& date);
-        void RTC_SetAlarm(const datetime_t& datetime, AlarmType alarm = ALL);
+        void RTC_SetDateTime(const datetime_t& datetime);
+        void RTC_SetAlarm(const datetime_t& datetime, const uint32_t alarm = ALL, const bool isWeekDay = false);
     }
 #endif // RTC_H

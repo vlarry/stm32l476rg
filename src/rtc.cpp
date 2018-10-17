@@ -40,6 +40,12 @@ void rtc::RTC_Date(date_t& date)
     temp = (RTC->DR&0x3F);
     date.day = (temp >> 4)*10 + (temp&0x0F);
 }
+//-----------------------------------------------
+void rtc::RTC_DateTime(rtc::datetime_t& datetime)
+{
+    RTC_Date(datetime.date);
+    RTC_Time(datetime.time);
+}
 //----------------------------------------------
 void rtc::RTC_SetTime(const rtc::time_t& time)
 {
@@ -72,8 +78,14 @@ void rtc::RTC_SetDate(const rtc::date_t& date)
     RTC->WPR = 0xFF;
     PWR->CR1 &= ~PWR_CR1_DBP;
 }
-//---------------------------------------------------------------------------
-void rtc::RTC_SetAlarm(const rtc::datetime_t &datetime, rtc::AlarmType alarm)
+//--------------------------------------------------------
+void rtc::RTC_SetDateTime(const rtc::datetime_t& datetime)
+{
+    RTC_SetDate(datetime.date);
+    RTC_SetTime(datetime.time);
+}
+//-------------------------------------------------------------------------------------------------
+void rtc::RTC_SetAlarm(const rtc::datetime_t& datetime, const uint32_t alarm, const bool isWeekDay)
 {
     PWR->CR1 |= PWR_CR1_DBP;
     RTC->WPR = 0xCA;
@@ -81,7 +93,12 @@ void rtc::RTC_SetAlarm(const rtc::datetime_t &datetime, rtc::AlarmType alarm)
     RTC->CR &= ~RTC_CR_ALRAE;
     while(!(RTC->ISR & RTC_ISR_ALRAWF)){}
 
-    uint8_t day = ((datetime.date.day/10) << 4) | (datetime.date.day%10);
+    uint8_t day = 0x00;
+
+    if(isWeekDay)
+        day = (1 << 6) | (datetime.date.week_day&0x0F);
+    else
+        day = ((datetime.date.day/10) << 4) | (datetime.date.day%10);
     uint8_t hour = ((datetime.time.hour/10) << 4) | (datetime.time.hour%10);
     uint8_t minute = ((datetime.time.minute/10) << 4) | (datetime.time.minute%10);
     uint8_t second = ((datetime.time.second/10) << 4) | (datetime.time.second%10);

@@ -12,22 +12,16 @@ int main()
     init_gpio();
 //    init_tim6();
 
-//    GPIOA->BSRR |= GPIO_BSRR_BS5;
-
     rtc::RTC_SetTime(rtc::time_t({ 20, 0, 0 }));
     rtc::RTC_SetDate(rtc::date_t({ 18, 2, 10, 16 }));
-    rtc::datetime_t datetime = rtc::datetime_t({ rtc::date_t({ 18, 2, 10, 16 }), rtc::time_t({ 20, 1, 30 }) });
+    rtc::datetime_t alarm_datetime = rtc::datetime_t({ rtc::date_t({ 18, 2, 10, 16 }), rtc::time_t({ 20, 3, 10 }) });
 
-    rtc::RTC_SetAlarm(datetime, rtc::AlarmType::SECOND);
+    rtc::RTC_SetAlarm(alarm_datetime, rtc::SECOND | rtc::DATE, true);
 
     while(1)
     {
-        rtc::time_t time;
-        rtc::RTC_Time(time);
-        rtc::date_t date;
-        rtc::RTC_Date(date);
-
-        uint32_t alarm = RTC->ALRMAR;
+        rtc::datetime_t datetime;
+        rtc::RTC_DateTime(datetime);
 
         if(RTC->ISR & RTC_ISR_ALRAF)
         {
@@ -36,7 +30,9 @@ int main()
             else
                 GPIOA->BSRR |= GPIO_BSRR_BS5;
 
+            PWR->CR1 |= PWR_CR1_DBP;
             RTC->ISR &= ~RTC_ISR_ALRAF;
+            PWR->CR1 &= ~PWR_CR1_DBP;
         }
     };
 }
