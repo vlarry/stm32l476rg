@@ -4,6 +4,7 @@
 void init_pll80_hsi16_3v3(void);
 void init_gpio(void);
 void init_tim6(void);
+void init_exti(void);
 //--------
 int main()
 {
@@ -11,6 +12,7 @@ int main()
     rtc::RTC_Init();
     init_gpio();
 //    init_tim6();
+    init_exti();
 
     rtc::RTC_SetTime(rtc::time_t({ 20, 0, 0 }));
     rtc::RTC_SetDate(rtc::date_t({ 18, 2, 10, 16 }));
@@ -91,6 +93,17 @@ void init_tim6(void)
 
     NVIC_EnableIRQ(TIM6_DAC_IRQn);
     NVIC_SetPriority(TIM6_DAC_IRQn, 1);
+}
+//------------------
+void init_exti(void)
+{
+    RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;
+
+    GPIOC->MODER &= ~GPIO_MODER_MODE13;
+    GPIOC->PUPDR  = (GPIOC->PUPDR & ~GPIO_PUPDR_PUPDR13) | GPIO_PUPDR_PUPDR13_0;
+
+    EXTI->EMR1  |= EXTI_EMR1_EM13;
+    EXTI->FTSR1 |= EXTI_FTSR1_FT13;
 }
 //---------------------------------------
 extern "C" void TIM6_DAC_IRQHandler(void)
